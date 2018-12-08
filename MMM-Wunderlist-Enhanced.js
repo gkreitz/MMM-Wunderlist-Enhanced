@@ -14,6 +14,8 @@ Module.register("MMM-Wunderlist-Enhanced", {
     maximumEntries: 10,
     order: "normal",
     lists: ["inbox"],
+    summarize: [],
+    alwaysShowPattern: "",
     interval: 60,
     fade: true,
     fadePoint: 0.25,
@@ -56,20 +58,14 @@ Module.register("MMM-Wunderlist-Enhanced", {
     Log.info("Starting module: " + this.name);
   },
 
-  getTodos: function() {
-    var tasks = [];
-    this.config.lists.forEach((listValue, listKey) => {
-      let list = this.tasks[listValue];
-      if (list && list.length)
-        list.forEach(todo => {
-          if (this.config.order === 'reversed') {
-            tasks.push(todo);
-          } else {
-            tasks.unshift(todo)
-          }
-        });
-      }
-    );
+  getTodos: function(listName) {
+    if(!this.tasks[listName])
+      return [];
+
+    let tasks = this.tasks[listName].slice();
+    if (this.config.order === 'reversed') {
+      tasks.reverse();
+    }
 
     return tasks;
   },
@@ -182,51 +178,30 @@ Module.register("MMM-Wunderlist-Enhanced", {
       wrapper.className += " spaced";
     }
 
-    var todos = this.getTodos();
+    var results = [];
 
-    var rows = [];
-    var titleRows = [];
+    this.config.lists.forEach(function(listName, _) {
+      let todos = self.getTodos(listName)
+      todos = todos.slice(0, self.config.maximumEntries);
 
-    todos.forEach(function(todo, i) {
-      // Generate Title Rows
-      if (!titleRows.includes(todo.listFrom))
-        titleRows.push(todo.listFrom);
+      if (self.config.summarize.includes(listName)) {
+        let len = self.tasks[listName] ? self.tasks[listName].length : 0;
+        results.push(self.getTitleRow(listName + " (" + len + ")"));
 
-      const titleRowValue = titleRows.findIndex(x => x === todo.listFrom);
-
-      // Generate Rows
-      if (!rows[titleRowValue])
-        rows[titleRowValue] = [];
-
-      rows[titleRowValue].push(self.getRow(todo));
-
-      // Create fade effect
-      if (self.config.fade && self.config.fadePoint < 1) {
-        if (self.config.fadePoint < 0) {
-          self.config.fadePoint = 0;
-        }
-        var startingPoint = todos.length * self.config.fadePoint;
-        if (i >= startingPoint) {
-          wrapper.style.opacity = 1 - (1 / todos.length - startingPoint * (i - startingPoint));
-        }
-      }
-    });
-
-    const generateRows = () => {
-      var results = [];
-      titleRows.forEach((key, value) => {
-        results.push(self.getTitleRow(key));
-        let count = 0;
-        rows[value].forEach((rowValue, rowKey) => {
-          if (count < this.config.maximumEntries)
-            results.push(rowValue);
-          count = count + 1;
+        todos = todos.filter(function(todo) {
+          if(todo.starred)
+            return true;
+          return self.config.alwaysShowPattern && todo.title.search(self.config.alwaysShowPattern) != -1;
         });
-      });
-      return results.join('');
-    }
+      } else {
+        results.push(self.getTitleRow(listName));
+      }
 
-    wrapper.innerHTML = this.html.table.format(generateRows())
+      todos.forEach(function(todo, i) {
+        results.push(self.getRow(todo));
+      });
+    });
+    wrapper.innerHTML = this.html.table.format(results.join(''))
 
     return wrapper;
   }
