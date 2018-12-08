@@ -31,7 +31,7 @@ module.exports = NodeHelper.create({
     this.WunderlistAPI.http.users.all().done(function(users) {
       var ret = {};
       users.forEach(function(user) {
-        ret[user.id] = user.name[0]
+        ret[user.id] = user.name ? user.name[0] : user.email[0];
       });
       callback(ret);
     }).fail(function(resp, code) {
