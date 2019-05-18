@@ -48,12 +48,12 @@ var Fetcher = function (listID, listFrom, reloadInterval, accessToken, clientID)
       .done(function (tasks) {
         items = tasks.map(task => Object.assign(task, {listFrom}));
         self.broadcastItems();
-        scheduleTimer();
       })
       .fail(function (resp, code) {
         console.error('there was a Wunderlist problem', resp, code);
       });
     });
+    scheduleTimer();
 
 
   };
